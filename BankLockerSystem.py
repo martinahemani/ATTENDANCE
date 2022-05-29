@@ -1,28 +1,22 @@
-# importing all the required Library
 import cv2
 import numpy as np
 import face_recognition
 import os
-import requests
-import json
 from twilio.rest import Client
 import info
 from datetime import datetime
-
 num = []
-# Storing all the images
 path = 'images'
 images = []
-# Storing all the names here
 personName = []
 myList = os.listdir(path)
+# print(myList)
 
-# Reading the images using cv2 Model
 for cu_img in myList:
     current_Img = cv2.imread(f'{path}/{cu_img}')
     images.append(current_Img)
     personName.append(os.path.splitext(cu_img)[0])
-
+    # print(personName)
 
 
 def faceEncodings(images):
@@ -35,17 +29,16 @@ def faceEncodings(images):
 
 
 encodeListKnown = faceEncodings(images)
-print("Encodings are done")
+print(" Encodings Done")
 
 
-def report(name):
-    with open('RecordsOfPeople.csv', 'r+') as f:
+def attendance(name):
+    with open('RecordFile.csv', 'r+') as f:
         myDataList = f.readlines()
         nameList = []
         for line in myDataList:
             entry = line.split(',')
             nameList.append(entry[0])
-
         if name not in nameList:
             time_now = datetime.now()
             tStr = time_now.strftime('%H:%M:%S')
@@ -53,13 +46,14 @@ def report(name):
             f.writelines(f'{name}, {tStr}, {dStr}\n')
 
 
-# reading the camera
 camera_port = 0
 cap = cv2.VideoCapture(camera_port, cv2.CAP_DSHOW)
 
 while True:
     ret, frame = cap.read()
+
     faces = cv2.resize(frame, (0, 0), None, 0.25, 0.25)
+
     faces = cv2.cvtColor(faces, cv2.COLOR_BGR2RGB)
 
     faceCurrent = face_recognition.face_locations(faces)
@@ -82,7 +76,7 @@ while True:
             for i in info.targe_no:
                  if i['Name '] == personName[matchIndex] :
                     num.append(i['Mobile No.'])
-            report(name)
+            attendance(name)
 
     cv2.imshow("Camera", frame)
 
@@ -90,16 +84,16 @@ while True:
     if k == 27:
         break
 
-url = 'https://7sj1hjl2qh.execute-api.us-east-1.amazonaws.com/test/attendance'
-body = {
+client = Client(info.account_sid, info.auth_token)
+message = client.messages \
+    .create(
+    body="You are entering to our locker room, if it isn't you then call on Bank's Helpline nummber 988684",
+    from_=info.twilio_no,
+    to= '+91'+str(num[0])
 
-    "password": "hello",
-    "name": "Marteena"
-}
-response = requests.post(url, data = json.dumps(body))
+)
 
-print(response.text)
-
+print(message.body)
 
 cap.release()
 cv2.destroyAllWindows()
